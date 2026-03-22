@@ -5,7 +5,7 @@ export default async function BrowseMusic() {
     next: { revalidate: 60 }, // Revalidate every 60 seconds
   });
   const res = await getPopularGenre.json();
-  const popularTags = res.response.tags.tag;
+  const popularTags = res.tags;
 
   return (
     <section className="browse-list">
@@ -14,8 +14,8 @@ export default async function BrowseMusic() {
         {/* <Link key="popular" href="" className="m-1 ">popular</Link>
         <Link key="artist" href="" className="m-1">artist</Link>
         <Link key="genres" href="" className="m-1">genres</Link> */}
-        {popularTags.map((link: any) => {
-          return (<Link key={link.index} href={`/genre/${link.name}`} className="m-1 min-w-fit">{link.name}</Link>)
+        {popularTags.map((link: { id: string; name: string }) => {
+          return (<Link key={link.id} href={`/genre/${link.name}`} className="m-1 min-w-fit">{link.name}</Link>)
         })}
       </nav>
     </section>

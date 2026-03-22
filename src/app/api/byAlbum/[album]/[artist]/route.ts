@@ -1,6 +1,8 @@
 import { Params } from "next/dist/shared/lib/router/utils/route-matcher"
+import { getAlbumDetails } from "@/app/libs/lastfm";
 
 export async function GET(request: Request, context: { params: Params}) {
-  const  url = `${process.env.API_URL}/2.0/?method=album.getinfo&artist=${context.params.artist}&album=${context.params.album}&api_key=${process.env.API_KEY}&format=json`
-  return await fetch(url)
+  const album = await getAlbumDetails(context.params.artist, context.params.album);
+
+  return Response.json({ album });
 }

@@ -3,15 +3,15 @@ export default async function Page({params}:{params:{name:string}}){
     next: { revalidate: 60 }, // Revalidate every 60 seconds
   });
   const res = await getTopAlbums.json();
-  const albumsByTag = res.response.albums.album;
+  const albumsByTag = res.albums;
 
   return (
     <section className={`${params.name}-page`}>
       <h2>{params.name}</h2>
       <ul className="list-disc">
-        {albumsByTag.map((album:any)=>{
+        {albumsByTag.map((album:{ id: string; artistName: string; name: string })=>{
           return(
-            <li key={album.name}> {album.artist.name} - {album.name}</li>
+            <li key={album.id}> {album.artistName} - {album.name}</li>
           )
         })}
       </ul>
