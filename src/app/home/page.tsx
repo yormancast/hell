@@ -1,5 +1,8 @@
-import { DiscoveryNode, DiscoveryResponse } from "@/types/music";
-import DiscoveryLogger from "@/app/ui/home/discoveryLogger";
+
+import { headers } from "next/headers";
+import ForceGraph3DClient from "../components/3dMapRender/ForceGraph3DClient";
+import { buildGraphData } from "@/app/libs/graph";
+import type { DiscoveryResponse } from "@/types/music";
 
 type HomePageProps = {
   searchParams?: {
@@ -8,117 +11,106 @@ type HomePageProps = {
   };
 };
 
-function createHomeHref(type: string, value: string) {
-  const params = new URLSearchParams({
-    type,
-    value,
-  });
+function getBaseUrl() {
+  const requestHeaders = headers();
+  const host = requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
 
-  return `/home?${params.toString()}`;
-}
-
-function filterNodesByType(nodes: DiscoveryNode[], type: DiscoveryNode["type"], centerId: string) {
-  return nodes.filter((node) => node.type === type && node.id !== centerId);
-}
-
-function renderNodeList(nodes: DiscoveryNode[]) {
-  if (nodes.length === 0) {
-    return <p>Nothing here yet.</p>;
+  if (!host) {
+    return process.env.NEXT_PUBLIC_HOST_NAME ?? "http://localhost:3000";
   }
 
-  return (
-    <ul className="list-disc pl-6">
-      {nodes.map((node) => (
-        <li key={node.id}>
-          <a href={createHomeHref(node.type, node.label)}>
-            {node.label}
-          </a>
-          {` `}
-          <small>
-            {node.sublabel ?? node.type}
-          </small>
-        </li>
-      ))}
-    </ul>
-  );
+  return `${protocol}://${host}`;
 }
 
 export default async function Home({ searchParams }: HomePageProps) {
-  const requestedType = searchParams?.type;
-  const seedType =
-    requestedType === "artist" || requestedType === "album" ? requestedType : "tag";
-  const seedValue = searchParams?.value?.trim() || "rock";
+  const seedType = searchParams?.type;
+  const submittedValue = searchParams?.value?.trim();
+  const hasInteracted = typeof searchParams?.value === "string";
+
+  if (!hasInteracted) {
+    return (
+      <section className="home-page w-full py-12">
+        <div className="mx-auto flex max-w-2xl flex-col gap-6">
+          <h1 className="text-3xl font-semibold">Discovery</h1>
+          <p className="text-sm text-[#b8b1a5]">
+            Start with a Genre, Artist, or Album and we&apos;ll build the map from there.
+          </p>
+          <form action="/home" method="get" className="flex flex-col gap-4">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium">Seed type</span>
+              <select
+                name="type"
+                defaultValue="tag"
+                className="rounded-md border border-[#2b2b2b] bg-[#111111] px-3 py-2 text-[#f2eee6]"
+              >
+                <option value="tag">Genre</option>
+                <option value="artist">Artist</option>
+                <option value="album">Album</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2">
+              <input
+                type="text"
+                name="value"
+                defaultValue="rock"
+                placeholder="rock"
+                className="rounded-md border border-[#2b2b2b] bg-[#111111] px-3 py-2 text-[#f2eee6] placeholder:text-[#7e786f]"
+              />
+            </label>
+            <button
+              type="submit"
+              className="w-fit rounded-md border border-[#2b2b2b] bg-[#f2eee6] px-4 py-2 text-sm font-medium text-[#050505]"
+            >
+              Explore!
+            </button>
+          </form>
+        </div>
+      </section>
+    );
+  }
+
+  const seedValue = submittedValue || "rock";
   const discoveryRequest = await fetch(
-    `${process.env.NEXT_PUBLIC_HOST_NAME}/api/discovery?type=${seedType}&value=${encodeURIComponent(seedValue)}`,
+    `${getBaseUrl()}/api/discovery?type=${seedType}&value=${encodeURIComponent(seedValue)}`,
     {
       next: { revalidate: 60 },
     },
   );
+
+  if (!discoveryRequest.ok) {
+    throw new Error("Failed to load discovery data.");
+  }
+
   const discovery = (await discoveryRequest.json()) as DiscoveryResponse;
-  const centerNode = discovery.nodes.find((node) => node.id === discovery.center);
-  const artistNodes = filterNodesByType(discovery.nodes, "artist", discovery.center);
-  const albumNodes = filterNodesByType(discovery.nodes, "album", discovery.center);
-  const tagNodes = filterNodesByType(discovery.nodes, "tag", discovery.center);
+  const graphData = buildGraphData(discovery);
 
   return (
-    <section className="home-page w-full">
-      <DiscoveryLogger discovery={discovery} />
-      <h1>Discovery</h1>
-      <form className="mt-4 flex flex-col gap-3 md:flex-row md:items-end" action="/home" method="GET">
-        <label className="flex flex-col">
-          <span>Type</span>
-          <select name="type" defaultValue={seedType} className="rounded border px-3 py-2">
-            <option value="tag">Genre</option>
-            <option value="artist">Artist</option>
-            <option value="album">Album</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col">
-          <span>Seed</span>
+    <section className="home-page w-full py-8">
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold">Discovery</h1>
+          <p className="text-sm text-[#b8b1a5]">
+            Showing {discovery.seed.type}: {discovery.seed.value}
+          </p>
+        </div>
+        <form action="/home" method="get" className="flex items-center gap-3">
+          <input type="hidden" name="type" value={seedType} />
           <input
+            type="text"
             name="value"
             defaultValue={seedValue}
-            className="rounded border px-3 py-2"
-            placeholder={
-              seedType === "artist"
-                ? "Radiohead"
-                : seedType === "album"
-                  ? "OK Computer"
-                  : "rock"
-            }
+            className="rounded-md border border-[#2b2b2b] bg-[#111111] px-3 py-2 text-[#f2eee6] placeholder:text-[#7e786f]"
           />
-        </label>
-
-        <button type="submit" className="rounded border px-4 py-2">
-          Explore
-        </button>
-      </form>
-
-      <p className="mt-4">Seed: {discovery.seed.type} / {discovery.seed.value}</p>
-
-      <section className="mt-6">
-        <h2>Center</h2>
-        <p>
-          {centerNode?.label ?? "Unknown"}
-          {centerNode?.sublabel ? ` (${centerNode.sublabel})` : ""}
-        </p>
-      </section>
-
-      <section className="mt-8">
-        <h2>Artists</h2>
-        {renderNodeList(artistNodes)}
-      </section>
-
-      <section className="mt-8">
-        <h2>Albums</h2>
-        {renderNodeList(albumNodes)}
-      </section>
-
-      <section className="mt-8">
-        <h2>Tags</h2>
-        {renderNodeList(tagNodes)}
-      </section>
+          <button
+            type="submit"
+            className="rounded-md border border-[#2b2b2b] bg-[#f2eee6] px-4 py-2 text-sm font-medium text-[#050505]"
+          >
+            Refresh map
+          </button>
+        </form>
+      </div>
+      <ForceGraph3DClient graphData={graphData} />
     </section>
   );
 }

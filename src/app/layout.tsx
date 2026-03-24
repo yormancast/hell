@@ -19,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-[#050505] text-[#f2eee6]`}>
         <main className="flex flex-col items-center justify-between">
           <HeaderMain />
           <section className="content w-full px-12">

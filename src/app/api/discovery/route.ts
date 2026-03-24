@@ -22,6 +22,9 @@ function createDiscoveryNodeId(type: DiscoveryNodeType, value: string) {
   return `${type}:${value.trim().toLowerCase().replace(/\s+/g, "-")}`;
 }
 
+const ARTIST_LIMIT = 50;
+const ALBUM_LIMIT = 50;
+
 function createEdge(
   source: string,
   sourceType: DiscoveryNodeType,
@@ -87,7 +90,7 @@ function uniqueEdges(edges: DiscoveryEdge[]) {
 async function buildArtistDiscovery(value: string): Promise<DiscoveryResponse> {
   const [artist, albums] = await Promise.all([
     getArtistDetails(value),
-    getTopAlbumsByArtist(value, 8),
+    getTopAlbumsByArtist(value, ALBUM_LIMIT),
   ]);
 
   const center = artist.id;
@@ -129,8 +132,8 @@ async function buildArtistDiscovery(value: string): Promise<DiscoveryResponse> {
 
 async function buildTagDiscovery(value: string): Promise<DiscoveryResponse> {
   const [artists, albums] = await Promise.all([
-    getTopArtistsByTag(value, 8),
-    getTopAlbumsByTag(value, 8),
+    getTopArtistsByTag(value, ARTIST_LIMIT),
+    getTopAlbumsByTag(value, ALBUM_LIMIT),
   ]);
 
   const centerTag = normalizeTag({ name: value });
@@ -206,7 +209,7 @@ async function buildAlbumDiscovery(value: string): Promise<DiscoveryResponse> {
   const [album, artist, artistAlbums] = await Promise.all([
     getAlbumDetails(matchedAlbum.artistName, matchedAlbum.name),
     getArtistDetails(matchedAlbum.artistName),
-    getTopAlbumsByArtist(matchedAlbum.artistName, 8),
+    getTopAlbumsByArtist(matchedAlbum.artistName, ALBUM_LIMIT),
   ]);
 
   const center = album.id;

@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --page-bg: #050505;
+  --text-primary: #f2eee6;
+  --text-muted: #b8b1a5;
+  --border-subtle: #2b2b2b;
+  --surface-elevated: #111111;
+}
+
+html,
+body {
+  min-height: 100%;
+  background: var(--page-bg);
+  color: var(--text-primary);
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
