@@ -1,5 +1,7 @@
 ## It's dark and hell is hot
 
+Its a music app made to explore and find new music
+
 # music app
 # last.fm API
 https://www.last.fm/api
