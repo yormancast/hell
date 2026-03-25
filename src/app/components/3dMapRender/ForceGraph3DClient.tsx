@@ -24,33 +24,7 @@ export default function ForceGraph3DClient({
   graphData,
 }: ForceGraph3DClientProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const graphRef = useRef<{
-    graphData: (data: GraphData) => unknown;
-    width: (value: number) => unknown;
-    height: (value: number) => unknown;
-    d3Force: (
-      forceName: string,
-    ) =>
-      | {
-          strength?: (value: number) => unknown;
-          distance?: (value: number) => unknown;
-        }
-      | undefined;
-    nodeThreeObject: (fn: (node: object) => object) => unknown;
-    nodeThreeObjectExtend: (value: boolean) => unknown;
-    linkColor: (fn: () => string) => unknown;
-    linkOpacity: (value: number) => unknown;
-    linkWidth: (value: number) => unknown;
-    nodeLabel: (fn: (node: object) => string) => unknown;
-    onNodeHover: (fn: (node: object | null) => void) => unknown;
-    onNodeClick: (fn: (node: object) => void) => unknown;
-    cameraPosition: (
-      position?: { x?: number; y?: number; z?: number },
-      lookAt?: { x: number; y: number; z: number },
-      transitionMs?: number,
-    ) => { x: number; y: number; z: number } | unknown;
-    refresh: () => void;
-  } | null>(null);
+  const graphRef = useRef<any>(null);
   const [currentGraphData, setCurrentGraphData] = useState(graphData);
   const [centerNode, setCenterNode] = useState<GraphNode | null>(graphData.centerNode);
   const [isLoading, setIsLoading] = useState(false);
@@ -123,7 +97,7 @@ export default function ForceGraph3DClient({
       if (!containerElement) return;
 
       const ForceGraph3D = (await import("3d-force-graph")).default;
-      const THREE = await import("three");
+      const THREE = require("three");
       const graphInstance =
         graphRef.current ??
         new ForceGraph3D(containerElement);
@@ -142,14 +116,12 @@ export default function ForceGraph3DClient({
         .linkColor(() => "rgba(255, 255, 255, 0.22)")
         .linkOpacity(0.35)
         .linkWidth(1.2)
-        .nodeLabel((node) => {
-          const graphNode = node as GraphNode;
-          return graphNode.label;
+        .nodeLabel((node: GraphNode) => {
+          return node.label;
         })
-        .nodeThreeObject((node) => {
-          const graphNode = node as GraphNode;
-          const isCenterNode = centerNode?.id === graphNode.id;
-          const color = getNodeColor(graphNode.type);
+        .nodeThreeObject((node: GraphNode) => { 
+          const isCenterNode = centerNode?.id === node.id;
+          const color = getNodeColor(node.type);
           const radius = isCenterNode ? 9 : 5;
           const group = new THREE.Group();
           const glow = new THREE.Mesh(
@@ -191,9 +163,9 @@ export default function ForceGraph3DClient({
           return group;
         })
         .nodeThreeObjectExtend(true)
-        .onNodeClick((node) => {
-          const clickedNode = node as GraphNode;
-          void handleNodeClick(clickedNode);
+        .onNodeClick((node: GraphNode) => {
+
+          void handleNodeClick(node);
         })
         .graphData(currentGraphData)
         .refresh();
